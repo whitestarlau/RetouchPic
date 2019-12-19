@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.white.component_retouch.PicEditor;
+package com.white.piceditor;
 
 import android.opengl.GLES20;
 

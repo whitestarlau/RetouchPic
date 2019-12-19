@@ -1,4 +1,4 @@
-package com.white.component_retouch.PicEditor;
+package com.white.piceditor;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -41,7 +41,7 @@ import static android.media.effect.EffectFactory.EFFECT_SHARPEN;
 import static android.media.effect.EffectFactory.EFFECT_TEMPERATURE;
 import static android.media.effect.EffectFactory.EFFECT_TINT;
 import static android.media.effect.EffectFactory.EFFECT_VIGNETTE;
-import static com.white.component_retouch.PicEditor.PhotoFilter.NONE;
+import static com.white.piceditor.PhotoFilter.NONE;
 
 /**
  * <p>

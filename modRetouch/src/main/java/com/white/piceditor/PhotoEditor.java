@@ -1,4 +1,4 @@
-package com.white.component_retouch.PicEditor;
+package com.white.piceditor;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -390,7 +390,7 @@ public class PhotoEditor implements BrushViewChangeListener {
             parentView.getSource();
         }
         if (reTouchModeMode){
-            RetouchColorHolder.INSTANCE.setWeakImageView(new WeakReference<ImageView>(parentView.getSource()));
+            RetouchColorHolder.INSTANCE.setWeakViewHolder(new WeakReference<View>(parentView.getSource()));
         }else {
             RetouchColorHolder.INSTANCE.release();
         }
