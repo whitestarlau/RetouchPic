@@ -1,11 +1,22 @@
 package com.white.retouchdemo
 
 //import androidx.appcompat.app.AppCompatActivity
+
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ImageDecoder
+import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
+import android.view.PixelCopy
 import android.view.View
+import android.view.Window
 import com.white.piceditor.OnPhotoEditorListener
 import com.white.piceditor.PhotoEditor
 import com.white.piceditor.ViewType
@@ -13,7 +24,9 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
 import java.lang.ref.WeakReference
 
+
 class MainActivity : AppCompatActivity() {
+    val TAG = MainActivity::class.java.simpleName
     private val PICK_REQUEST = 251
     private var mPhotoEditor: PhotoEditor? = null
 
@@ -22,7 +35,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        openGallery()
+        initPhotoEditor()
+        openGallery.setOnClickListener {
+            openGallery()
+        }
+
+        window
     }
 
     fun openGallery() {
@@ -41,14 +59,55 @@ class MainActivity : AppCompatActivity() {
                 PICK_REQUEST -> try {
                     val uri = data?.data
 
-                    val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
-                    photoEditorView.source.setImageBitmap(bitmap)
+                    if (uri != null){
+                        if (android.os.Build.VERSION.SDK_INT >= 28) {
+                            Log.d(TAG,"use ImageDecoder")
+                            val source = ImageDecoder.createSource(contentResolver,uri)
 
-                    initPhotoEditor()
+                            val bitmap = ImageDecoder.decodeBitmap(source)
+                            photoEditorView.source.setImageBitmap(bitmap)
+
+                            val drawable = ImageDecoder.decodeDrawable(source)
+                            photoEditorView.source.setImageDrawable(drawable)
+                            mPhotoEditor?.clearAllViews()
+                        }else{
+                            Log.d(TAG,"use MediaStore")
+                            val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                            photoEditorView.source.setImageBitmap(bitmap)
+                            mPhotoEditor?.clearAllViews()
+                        }
+                    }
+
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
             }
+        }
+    }
+
+    fun captureView(view: View, window: Window, bitmapCallback: (Bitmap)->Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Above Android O, use PixelCopy
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            val location = IntArray(2)
+            view.getLocationInWindow(location)
+            PixelCopy.request(window,
+                Rect(location[0], location[1], location[0] + view.width, location[1] + view.height),
+                bitmap,
+                {
+                    if (it == PixelCopy.SUCCESS) {
+                        bitmapCallback.invoke(bitmap)
+                    }
+                },
+                Handler(Looper.getMainLooper()) )
+        } else {
+            val tBitmap = Bitmap.createBitmap(
+                view.width, view.height, Bitmap.Config.RGB_565
+            )
+            val canvas = Canvas(tBitmap)
+            view.draw(canvas)
+            canvas.setBitmap(null)
+            bitmapCallback.invoke(tBitmap)
         }
     }
 

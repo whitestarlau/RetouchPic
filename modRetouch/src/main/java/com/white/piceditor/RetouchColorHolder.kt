@@ -1,92 +1,183 @@
 package com.white.piceditor
 
+import android.app.Activity
 import android.graphics.*
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.support.annotation.RequiresApi
 import android.util.Log
+import android.view.PixelCopy
 import android.view.View
+import android.view.Window
 import com.white.dominantColor.DominantColors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import java.lang.ref.WeakReference
-import java.util.ArrayList
+import java.util.*
+import kotlin.collections.HashSet
+import kotlin.collections.List
+import kotlin.collections.indices
+import kotlin.collections.isNullOrEmpty
 
 /**
  * 涂抹颜色的持有类
  * 考虑使用多个方法，目前尝试过摩尔投票法、kmeans聚合算法。未来考虑使用中位切分法
  */
-object RetouchColorHolder {
-    var weakViewHolder : WeakReference<View>? = null
+object RetouchColorHolder : CoroutineScope by MainScope() {
+    var weakViewHolder: WeakReference<View>? = null
 
     private const val TAG = "RetouchColorHolder"
 
-    private var firstTouchColor : Int? = null
+    private var firstTouchColor: Int? = null
 
-    fun resetTouchColor(){
+    fun resetTouchColor() {
         firstTouchColor = null
     }
-    fun getColor(x: Int, y: Int): Int {
-        return getColorNativeKMeans(x,y)
+
+    fun getColor(x: Int, y: Int, colorCallBack: (Int) -> Unit){
+        return getColorNativeKMeans(x, y,colorCallBack)
     }
 
     /**
      * 采用kmeans聚合算法得到颜色,native层方法。耗时主要在绘制图片这一步
      */
-    fun getColorNativeKMeans(x: Int, y: Int): Int {
+    fun getColorNativeKMeans(x: Int, y: Int,colorCallBack: (Int) -> Unit){
         firstTouchColor?.let {
             //如果不为空，直接进行返回
-            return it
+            colorCallBack.invoke(-1)
         }
-        Log.d(TAG,"start..")
+        Log.d(TAG, "start..")
         var result = -1
-        weakViewHolder.let { weakIv->
+        weakViewHolder.let { weakIv ->
             var imgView = weakIv?.get()
-            if (imgView == null){
+            if (imgView == null) {
                 Log.w(TAG, "getColor: img is null")
                 result = -1
-            }else{
-                val bitmap = Bitmap.createBitmap(imgView.measuredWidth,imgView.measuredHeight,Bitmap.Config.ARGB_8888)
+            } else {
+                val w = imgView.measuredWidth
+                val h = imgView.measuredHeight
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val window: Window? = (imgView.context as? Activity)?.getWindow()
+                    window?.let {
+                        val rect = Rect()
+                        rect.left = if (x - 100 > 0) x - 100 else 0
+                        rect.right = if (x + 100 < w) x + 100 else x
+                        rect.top = if (y - 100 > 0) y - 100 else 0
+                        rect.bottom = if (y + 100 < h) y + 100 else y
 
-                val canvas = Canvas(bitmap)
-                canvas.save()
-                //主要耗时步骤，后续可以考虑将方法进行优化，不是每次都需要进行draw
-                imgView.draw(canvas)
-                canvas.restore()
-
-                Log.d(TAG,"draw bitmap end")
-                val w = bitmap.width
-                val h = bitmap.height
-                val rect = Rect()
-                rect.left = if (x-100>0) x-100 else 0
-                rect.right = if (x+100<w) x+100 else x
-                rect.top = if (y-100>0) y-100 else 0
-                rect.bottom = if (y+100<h) y+100 else y
-
-                Log.w(TAG,"rect$rect")
-                val bmpCrop = Bitmap.createBitmap(bitmap, rect.left, rect.top, rect.width(), rect.height())
-
-                Log.d(TAG,"crop bitmap end")
-                val colors = DominantColors.getDominantColors(bmpCrop,5)
-                var maxPercent = -1f
-                for (i in colors.indices){
-                    val percent = colors[i].percentage
-                    if (percent > maxPercent){
-                        result = colors[i].color
-                        Log.d(TAG,"maxPercent:$percent,color:$result")
-                        maxPercent = percent
+                        cropFromWindow(it,rect,{bmp ->
+                            Log.d(TAG, "crop bitmap end")
+                            val colors = DominantColors.getDominantColors(bmp, 5)
+                            var maxPercent = -1f
+                            for (i in colors.indices) {
+                                val percent = colors[i].percentage
+                                if (percent > maxPercent) {
+                                    result = colors[i].color
+                                    Log.d(TAG, "maxPercent:$percent,color:$result")
+                                    maxPercent = percent
+                                }
+                            }
+                            colorCallBack.invoke(result)
+                        })
                     }
-                }
+                } else {
+                    val bitmap = Bitmap.createBitmap(
+                        imgView.measuredWidth,
+                        imgView.measuredHeight,
+                        Bitmap.Config.ARGB_8888
+                    )
 
-                Log.d(TAG,"dominant bitmap color end")
-                bitmap.recycle()
+                    val canvas = Canvas(bitmap)
+                    canvas.save()
+                    //主要耗时步骤，后续可以考虑将方法进行优化，不是每次都需要进行draw
+                    imgView.draw(canvas)
+                    canvas.restore()
+
+                    Log.d(TAG, "draw bitmap end")
+                    val rect = Rect()
+                    rect.left = if (x - 100 > 0) x - 100 else 0
+                    rect.right = if (x + 100 < w) x + 100 else x
+                    rect.top = if (y - 100 > 0) y - 100 else 0
+                    rect.bottom = if (y + 100 < h) y + 100 else y
+
+                    Log.w(TAG, "rect$rect")
+                    val bmpCrop = Bitmap.createBitmap(bitmap, rect.left, rect.top, rect.width(), rect.height())
+
+                    Log.d(TAG, "crop bitmap end")
+                    val colors = DominantColors.getDominantColors(bmpCrop, 5)
+                    var maxPercent = -1f
+                    for (i in colors.indices) {
+                        val percent = colors[i].percentage
+                        if (percent > maxPercent) {
+                            result = colors[i].color
+                            Log.d(TAG, "maxPercent:$percent,color:$result")
+                            maxPercent = percent
+                        }
+                    }
+
+                    colorCallBack.invoke(result)
+                    Log.d(TAG, "dominant bitmap color end")
+                    bitmap.recycle()
+                }
             }
         }
-        Log.d(TAG,"end..")
+        Log.d(TAG, "end..")
 
         firstTouchColor = result
-        return result
+    }
+
+    fun captureView(view: View, window: Window, bitmapCallback: (Bitmap) -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Above Android O, use PixelCopy
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            val location = IntArray(2)
+            view.getLocationInWindow(location)
+            PixelCopy.request(
+                window,
+                Rect(location[0], location[1], location[0] + view.width, location[1] + view.height),
+                bitmap,
+                {
+                    if (it == PixelCopy.SUCCESS) {
+                        bitmapCallback.invoke(bitmap)
+                    }
+                },
+                Handler(Looper.getMainLooper())
+            )
+        } else {
+            val tBitmap = Bitmap.createBitmap(
+                view.width, view.height, Bitmap.Config.RGB_565
+            )
+            val canvas = Canvas(tBitmap)
+            view.draw(canvas)
+            canvas.setBitmap(null)
+            bitmapCallback.invoke(tBitmap)
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun cropFromWindow(window: Window, rect: Rect, bitmapCallback: (Bitmap) -> Unit) {
+        val bitmap = Bitmap.createBitmap(rect.width(), rect.height(), Bitmap.Config.ARGB_8888)
+        val location = IntArray(2)
+
+        PixelCopy.request(
+            window,
+            rect,
+            bitmap,
+            {
+                if (it == PixelCopy.SUCCESS) {
+                    bitmapCallback.invoke(bitmap)
+                }
+            },
+            Handler(Looper.getMainLooper())
+        )
     }
 
     /**
      * 释放资源
      */
-    fun release(){
+    fun release() {
         weakViewHolder?.clear()
         resetTouchColor()
     }
@@ -112,15 +203,19 @@ object RetouchColorHolder {
             //如果不为空，直接进行返回
             return it
         }
-        Log.d(TAG,"start..")
+        Log.d(TAG, "start..")
         var result = -1
-        weakViewHolder.let { weakIv->
+        weakViewHolder.let { weakIv ->
             var imgView = weakIv?.get()
-            if (imgView == null){
+            if (imgView == null) {
                 Log.w(TAG, "getColor: img is null")
                 result = -1
-            }else{
-                var bitmap = Bitmap.createBitmap(imgView.measuredWidth,imgView.measuredHeight,Bitmap.Config.RGB_565)
+            } else {
+                var bitmap = Bitmap.createBitmap(
+                    imgView.measuredWidth,
+                    imgView.measuredHeight,
+                    Bitmap.Config.RGB_565
+                )
 
                 var canvas = Canvas(bitmap)
                 canvas.save()
@@ -135,12 +230,12 @@ object RetouchColorHolder {
                  * 取出一个集合来待用。
                  */
                 var pointSet = HashSet<Point>()
-                val sampleLeftStep = 0- sampleStep
-                for (xi in sampleLeftStep..sampleStep){
-                    for (yi in sampleLeftStep..sampleStep){
+                val sampleLeftStep = 0 - sampleStep
+                for (xi in sampleLeftStep..sampleStep) {
+                    for (yi in sampleLeftStep..sampleStep) {
                         var p = Point()
-                        p.x = x+ sampleRange*xi
-                        p.y = y+ sampleRange*yi
+                        p.x = x + sampleRange * xi
+                        p.y = y + sampleRange * yi
                         pointSet.add(p)
                     }
                 }
@@ -149,13 +244,13 @@ object RetouchColorHolder {
                 var blueList = ArrayList<Int>()
                 var greenList = ArrayList<Int>()
 
-                for (p in pointSet){
-                    if (p.x<0||p.y<0||p.x>bmpW||p.y>bmpH){
+                for (p in pointSet) {
+                    if (p.x < 0 || p.y < 0 || p.x > bmpW || p.y > bmpH) {
                         //超出边界，此点舍弃
                         break
                     }
-                    var color = bitmap.getPixel(p.x,p.y)
-                    Log.d(TAG,"location:${p},color:${color}")
+                    var color = bitmap.getPixel(p.x, p.y)
+                    Log.d(TAG, "location:${p},color:${color}")
 
                     /**
                      * int red = (color & 0xff0000) >> 16;
@@ -166,7 +261,7 @@ object RetouchColorHolder {
                     val red = color and 0xff0000 shr 16
                     val green = color and 0x00ff00 shr 8
                     val blue = color and 0x0000ff
-                    Log.d(TAG,"read:${red},green:${green},blue:${blue}")
+                    Log.d(TAG, "read:${red},green:${green},blue:${blue}")
                     redList.add(red)
                     greenList.add(green)
                     blueList.add(blue)
@@ -174,18 +269,18 @@ object RetouchColorHolder {
                 val majorRed = majorityElement(redList)
                 val majorGreen = majorityElement(greenList)
                 val majorBlue = majorityElement(blueList)
-                if (majorRed != null && majorGreen != null && majorBlue != null){
-                    result = Color.argb(255,majorRed,majorGreen,majorBlue)
-                    Log.d(TAG,"use major color:${result}")
-                }else{
-                    result = bitmap.getPixel(x,y)
-                    Log.d(TAG,"dont use major color:${result}")
+                if (majorRed != null && majorGreen != null && majorBlue != null) {
+                    result = Color.argb(255, majorRed, majorGreen, majorBlue)
+                    Log.d(TAG, "use major color:${result}")
+                } else {
+                    result = bitmap.getPixel(x, y)
+                    Log.d(TAG, "dont use major color:${result}")
                 }
 
                 bitmap.recycle()
             }
         }
-        Log.d(TAG,"end..")
+        Log.d(TAG, "end..")
 
         firstTouchColor = result
         return result
@@ -204,7 +299,7 @@ object RetouchColorHolder {
     fun majorityElement(nums: List<Int>?): Int? {
         var count = 0
         var candidate: Int? = null
-        if (nums.isNullOrEmpty()){
+        if (nums.isNullOrEmpty()) {
             return candidate
         }
         for (num in nums) {
