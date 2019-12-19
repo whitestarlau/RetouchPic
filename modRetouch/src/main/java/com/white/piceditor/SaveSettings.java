@@ -1,4 +1,4 @@
-package com.white.component_retouch.PicEditor;
+package com.white.piceditor;
 
 import android.graphics.Bitmap;
 import android.support.annotation.IntRange;

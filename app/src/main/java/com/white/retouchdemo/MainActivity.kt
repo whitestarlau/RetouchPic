@@ -6,9 +6,9 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v7.app.AppCompatActivity
 import android.view.View
-import com.white.component_retouch.PicEditor.OnPhotoEditorListener
-import com.white.component_retouch.PicEditor.PhotoEditor
-import com.white.component_retouch.PicEditor.ViewType
+import com.white.piceditor.OnPhotoEditorListener
+import com.white.piceditor.PhotoEditor
+import com.white.piceditor.ViewType
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.IOException
 import java.lang.ref.WeakReference

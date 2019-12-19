@@ -1,8 +1,8 @@
-package com.white.component_retouch.PicEditor
+package com.white.piceditor
 
 import android.graphics.*
 import android.util.Log
-import android.widget.ImageView
+import android.view.View
 import com.white.dominantColor.DominantColors
 import java.lang.ref.WeakReference
 import java.util.ArrayList
@@ -12,7 +12,7 @@ import java.util.ArrayList
  * 考虑使用多个方法，目前尝试过摩尔投票法、kmeans聚合算法。未来考虑使用中位切分法
  */
 object RetouchColorHolder {
-    var weakImageView : WeakReference<ImageView>? = null
+    var weakViewHolder : WeakReference<View>? = null
 
     private const val TAG = "RetouchColorHolder"
 
@@ -35,7 +35,7 @@ object RetouchColorHolder {
         }
         Log.d(TAG,"start..")
         var result = -1
-        weakImageView.let { weakIv->
+        weakViewHolder.let { weakIv->
             var imgView = weakIv?.get()
             if (imgView == null){
                 Log.w(TAG, "getColor: img is null")
@@ -49,6 +49,7 @@ object RetouchColorHolder {
                 imgView.draw(canvas)
                 canvas.restore()
 
+                Log.d(TAG,"draw bitmap end")
                 val w = bitmap.width
                 val h = bitmap.height
                 val rect = Rect()
@@ -60,6 +61,7 @@ object RetouchColorHolder {
                 Log.w(TAG,"rect$rect")
                 val bmpCrop = Bitmap.createBitmap(bitmap, rect.left, rect.top, rect.width(), rect.height())
 
+                Log.d(TAG,"crop bitmap end")
                 val colors = DominantColors.getDominantColors(bmpCrop,5)
                 var maxPercent = -1f
                 for (i in colors.indices){
@@ -71,6 +73,7 @@ object RetouchColorHolder {
                     }
                 }
 
+                Log.d(TAG,"dominant bitmap color end")
                 bitmap.recycle()
             }
         }
@@ -84,7 +87,7 @@ object RetouchColorHolder {
      * 释放资源
      */
     fun release(){
-        weakImageView?.clear()
+        weakViewHolder?.clear()
         resetTouchColor()
     }
 
@@ -111,7 +114,7 @@ object RetouchColorHolder {
         }
         Log.d(TAG,"start..")
         var result = -1
-        weakImageView.let { weakIv->
+        weakViewHolder.let { weakIv->
             var imgView = weakIv?.get()
             if (imgView == null){
                 Log.w(TAG, "getColor: img is null")
