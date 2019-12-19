@@ -20,6 +20,9 @@ import android.view.View;
 
 import java.util.Stack;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
+
 /**
  * <p>
  * This is custom drawing view used to do painting on user touch events it it will paint on canvas
@@ -249,22 +252,30 @@ public class BrushDrawingView extends View {
     }
 
 
-    private void touchStart(float x, float y) {
+    private void touchStart(final float x,final float y) {
         mRedoPaths.clear();
 
 //        Log.d("liuyx","touchStart:"+x+","+y);
         if (mRetouchMode){
-            int color = RetouchColorHolder.INSTANCE.getColor((int)x,(int)y);
-            mDrawPaint.setColor(color);
+            RetouchColorHolder.INSTANCE.getColor((int)x,(int)y, new Function1<Integer, Unit>() {
+                @Override
+                public Unit invoke(Integer color) {
+                    mDrawPaint.setColor(color);
+
+                    mPath.reset();
+                    mPath.moveTo(x, y);
+                    mTouchX = x;
+                    mTouchY = y;
+                    if (mBrushViewChangeListener != null) {
+                        mBrushViewChangeListener.onStartDrawing();
+                    }
+                    return Unit.INSTANCE;
+                }
+            });
+
         }
 
-        mPath.reset();
-        mPath.moveTo(x, y);
-        mTouchX = x;
-        mTouchY = y;
-        if (mBrushViewChangeListener != null) {
-            mBrushViewChangeListener.onStartDrawing();
-        }
+
     }
 
     private void touchMove(float x, float y) {
