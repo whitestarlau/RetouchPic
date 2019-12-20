@@ -35,6 +35,9 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
         firstTouchColor = null
     }
 
+    /**
+     * 此处的x、y是相对于view的位置,即使用getX()而不是getRawX()
+     */
     fun getColor(x: Int, y: Int, colorCallBack: (Int) -> Unit){
         return getColorNativeKMeans(x, y,colorCallBack)
     }
@@ -42,10 +45,10 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
     /**
      * 采用kmeans聚合算法得到颜色,native层方法。耗时主要在绘制图片这一步
      */
-    fun getColorNativeKMeans(x: Int, y: Int,colorCallBack: (Int) -> Unit){
+    fun getColorNativeKMeans(x : Int, y: Int,colorCallBack: (Int) -> Unit){
         firstTouchColor?.let {
             //如果不为空，直接进行返回
-            colorCallBack.invoke(-1)
+            colorCallBack.invoke(it)
         }
         Log.d(TAG, "start..")
         var result = -1
@@ -55,19 +58,27 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                 Log.w(TAG, "getColor: img is null")
                 result = -1
             } else {
+
+
                 val w = imgView.measuredWidth
                 val h = imgView.measuredHeight
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    //算出在屏幕上的位置
+                    val location = IntArray(2)
+                    imgView.getLocationOnScreen(location)
+                    val lx = x+location[0]
+                    val ly = y+location[1]
+
                     val window: Window? = (imgView.context as? Activity)?.getWindow()
                     window?.let {
                         val rect = Rect()
-                        rect.left = if (x - 100 > 0) x - 100 else 0
-                        rect.right = if (x + 100 < w) x + 100 else x
-                        rect.top = if (y - 100 > 0) y - 100 else 0
-                        rect.bottom = if (y + 100 < h) y + 100 else y
+                        rect.left = if (lx - 100 > 0) lx - 100 else 0
+                        rect.right = if (lx + 100 < w) lx + 100 else lx
+                        rect.top = if (ly - 100 > 0) ly - 100 else 0
+                        rect.bottom = if (ly + 100 < h) ly + 100 else ly
 
                         cropFromWindow(it,rect,{bmp ->
-                            Log.d(TAG, "crop bitmap end")
+                            Log.d(TAG, "crop bitmap end,$rect")
                             val colors = DominantColors.getDominantColors(bmp, 5)
                             var maxPercent = -1f
                             for (i in colors.indices) {
@@ -78,6 +89,7 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                                     maxPercent = percent
                                 }
                             }
+                            firstTouchColor = result
                             colorCallBack.invoke(result)
                         })
                     }
@@ -116,6 +128,7 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                         }
                     }
 
+                    firstTouchColor = result
                     colorCallBack.invoke(result)
                     Log.d(TAG, "dominant bitmap color end")
                     bitmap.recycle()
@@ -123,8 +136,6 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
             }
         }
         Log.d(TAG, "end..")
-
-        firstTouchColor = result
     }
 
     fun captureView(view: View, window: Window, bitmapCallback: (Bitmap) -> Unit) {
