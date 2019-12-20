@@ -1,2 +1,2 @@
 include ':app', ':modRetouch'
-rootProject.name = 'RetouchDemo'
+rootProject.name = 'RetouchPic'
