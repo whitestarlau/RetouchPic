@@ -49,7 +49,8 @@ class MainActivity : AppCompatActivity() {
         intent.action = Intent.ACTION_GET_CONTENT
         startActivityForResult(
             Intent.createChooser(intent, "Select Picture"),
-            PICK_REQUEST)
+            PICK_REQUEST
+        )
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -59,10 +60,10 @@ class MainActivity : AppCompatActivity() {
                 PICK_REQUEST -> try {
                     val uri = data?.data
 
-                    if (uri != null){
+                    if (uri != null) {
                         if (android.os.Build.VERSION.SDK_INT >= 28) {
-                            Log.d(TAG,"use ImageDecoder")
-                            val source = ImageDecoder.createSource(contentResolver,uri)
+                            Log.d(TAG, "use ImageDecoder")
+                            val source = ImageDecoder.createSource(contentResolver, uri)
 
                             val bitmap = ImageDecoder.decodeBitmap(source)
                             photoEditorView.source.setImageBitmap(bitmap)
@@ -70,8 +71,8 @@ class MainActivity : AppCompatActivity() {
                             val drawable = ImageDecoder.decodeDrawable(source)
                             photoEditorView.source.setImageDrawable(drawable)
                             mPhotoEditor?.clearAllViews()
-                        }else{
-                            Log.d(TAG,"use MediaStore")
+                        } else {
+                            Log.d(TAG, "use MediaStore")
                             val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
                             photoEditorView.source.setImageBitmap(bitmap)
                             mPhotoEditor?.clearAllViews()
@@ -85,13 +86,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun captureView(view: View, window: Window, bitmapCallback: (Bitmap)->Unit) {
+    fun captureView(view: View, window: Window, bitmapCallback: (Bitmap) -> Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Above Android O, use PixelCopy
             val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
             val location = IntArray(2)
             view.getLocationInWindow(location)
-            PixelCopy.request(window,
+            PixelCopy.request(
+                window,
                 Rect(location[0], location[1], location[0] + view.width, location[1] + view.height),
                 bitmap,
                 {
@@ -99,7 +101,8 @@ class MainActivity : AppCompatActivity() {
                         bitmapCallback.invoke(bitmap)
                     }
                 },
-                Handler(Looper.getMainLooper()) )
+                Handler(Looper.getMainLooper())
+            )
         } else {
             val tBitmap = Bitmap.createBitmap(
                 view.width, view.height, Bitmap.Config.RGB_565
@@ -111,7 +114,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun initPhotoEditor(){
+    fun initPhotoEditor() {
         mPhotoEditor = PhotoEditor.Builder(this, photoEditorView)
             .setPinchTextScalable(true) // set flag to make text scalable when pinch
             .build()
