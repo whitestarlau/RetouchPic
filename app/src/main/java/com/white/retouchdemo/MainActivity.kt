@@ -39,8 +39,6 @@ class MainActivity : AppCompatActivity() {
         openGallery.setOnClickListener {
             openGallery()
         }
-
-        window
     }
 
     fun openGallery() {
