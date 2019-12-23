@@ -70,18 +70,18 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
 
                     val window: Window? = (imgView.context as? Activity)?.getWindow()
 
-                    val wm = imgView.context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                    val dm = DisplayMetrics()
-                    wm.defaultDisplay.getMetrics(dm)
-                    var w = dm.widthPixels
-                    var h = dm.heightPixels
+                    val imgRect = Rect()
+                    imgRect.left = location[0]
+                    imgRect.right = location[0] + imgView.measuredWidth
+                    imgRect.top = location[1]
+                    imgRect.bottom = location[1] + imgView.measuredHeight
 
                     window?.let {
                         val rect = Rect()
-                        rect.left = if (lx - cropRange > 0) lx - cropRange else 0
-                        rect.right = if (lx + cropRange < w) lx + cropRange else lx
-                        rect.top = if (ly - cropRange > 0) ly - cropRange else 0
-                        rect.bottom = if (ly + cropRange < h) ly + cropRange else ly
+                        rect.left = if (lx - cropRange > imgRect.left) lx - cropRange else imgRect.left
+                        rect.right = if (lx + cropRange < imgRect.right) lx + cropRange else imgRect.right
+                        rect.top = if (ly - cropRange > imgRect.top) ly - cropRange else imgRect.top
+                        rect.bottom = if (ly + cropRange < imgRect.bottom ) ly + cropRange else imgRect.bottom
 
                         cropFromWindow(it, rect, { bmp ->
                             Log.d(TAG, "crop bitmap end,$rect")
