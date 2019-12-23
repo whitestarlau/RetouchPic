@@ -4,12 +4,15 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 /**
- * 聚合出的颜色，目前percentage是无效的属性（作者未填坑，后续考虑补上）
+ * 聚合出的颜色
  */
 public class DominantColor implements Parcelable {
 
 	public int color;
 	public float percentage;
+
+	public DominantColor() {
+	}
 
 	@Override
 	public int describeContents() {
