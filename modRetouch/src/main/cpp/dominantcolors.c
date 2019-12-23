@@ -23,6 +23,7 @@ typedef int bool;
 #define  LOG_TAG    "dominantcolors"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
 
 typedef struct {
     double r;
@@ -99,6 +100,7 @@ static void kmeans(AndroidBitmapInfo *info, void *pixels, int numColors, jint *c
     double members[numColors];
     int filled = 0;
     uint32_t new_color;
+    int reGenTime = 0;
     while (filled < numColors) {
         //用rand方法产生随机种子坐标，从图片中取出这些种子坐标对应的数据。种子的数量由numColors决定
         xx = rand() % info->width;
@@ -106,9 +108,17 @@ static void kmeans(AndroidBitmapInfo *info, void *pixels, int numColors, jint *c
         new_color = ((uint32_t *) ((char *) pixels + yy * info->stride))[xx];
         bool contained = false;
         int i;
-        for (i = 0; i < filled; contained |= (centroids[i++] == new_color));
-        if (!contained) {
+        for (i = 0; i < filled; ){
+            contained |= (centroids[i++] == new_color);
+        }
+        //如果随机的颜色和之前就一样，则舍弃此次的随机，重新取色
+        //但是这样有一个问题：如果图片就是一张纯色图，则陷入死循环。
+        //加入一个机制，如果重试了三次，颜色还是和之前的一样，则放弃随机。
+        if (!contained || reGenTime>3) {
             centroids[filled++] = new_color;
+            reGenTime = 0;
+        } else{
+            reGenTime++;
         }
     }
 
@@ -163,7 +173,7 @@ static void kmeans(AndroidBitmapInfo *info, void *pixels, int numColors, jint *c
     double total = (info->width) * (info->height);
     for (int i = 0; i < numColors; ++i) {
         precentages[i] = members[i] / total;
-        LOGE("precentages: %f", precentages[i]);
+        LOGD("precentages: %f", precentages[i]);
     }
 }
 
@@ -187,7 +197,7 @@ Java_com_white_dominantColor_DominantColors_kmeans(JNIEnv *env, jclass obj, jobj
         LOGE("AndroidBitmap_lockPixels() failed ! error=%d", ret);
     }
 
-
+    LOGD("numColors: %d", numColors);
     jint fill[numColors];
     jfloat percentages[numColors];
     kmeans(&info, pixels, numColors, fill, percentages);
@@ -203,11 +213,13 @@ Java_com_white_dominantColor_DominantColors_kmeans(JNIEnv *env, jclass obj, jobj
         LOGE("com/white/dominantColor/DominantColor");
         return NULL;
     }
-    jmethodID dominantColorInitId = (*env)->GetMethodID(env, colorClass, "<init>", "()V");
+
     jfieldID color_id = (*env)->GetFieldID(env, colorClass, "color", "I");
     jfieldID percentage_id = (*env)->GetFieldID(env, colorClass, "percentage", "F");
 
-    jobjectArray result = (*env)->NewObjectArray(env, numColors,colorClass,0);
+    jobjectArray result = (*env)->NewObjectArray(env, numColors,colorClass,NULL);
+
+    jmethodID dominantColorInitId = (*env)->GetMethodID(env, colorClass, "<init>", "()V");
 
     for (int i = 0; i < numColors; i++) {
         jobject dominantColor = (*env)->NewObject(env, colorClass, dominantColorInitId);
