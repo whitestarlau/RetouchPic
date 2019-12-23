@@ -1,24 +1,25 @@
 package com.white.piceditor
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.*
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.support.annotation.RequiresApi
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.PixelCopy
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import com.white.dominantColor.DominantColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.collections.HashSet
-import kotlin.collections.List
-import kotlin.collections.indices
-import kotlin.collections.isNullOrEmpty
+
 
 /**
  * 涂抹颜色的持有类
@@ -30,6 +31,8 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
     private const val TAG = "RetouchColorHolder"
 
     private var firstTouchColor: Int? = null
+
+    private val cropRange = 100
 
     fun resetTouchColor() {
         firstTouchColor = null
@@ -58,8 +61,6 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                 Log.w(TAG, "getColor: img is null")
                 result = -1
             } else {
-                val w = imgView.measuredWidth
-                val h = imgView.measuredHeight
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     //算出在屏幕上的位置
                     val location = IntArray(2)
@@ -68,12 +69,19 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                     val ly = y + location[1]
 
                     val window: Window? = (imgView.context as? Activity)?.getWindow()
+
+                    val wm = imgView.context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                    val dm = DisplayMetrics()
+                    wm.defaultDisplay.getMetrics(dm)
+                    var w = dm.widthPixels
+                    var h = dm.heightPixels
+
                     window?.let {
                         val rect = Rect()
-                        rect.left = if (lx - 100 > 0) lx - 100 else 0
-                        rect.right = if (lx + 100 < w) lx + 100 else lx
-                        rect.top = if (ly - 100 > 0) ly - 100 else 0
-                        rect.bottom = if (ly + 100 < h) ly + 100 else ly
+                        rect.left = if (lx - cropRange > 0) lx - cropRange else 0
+                        rect.right = if (lx + cropRange < w) lx + cropRange else lx
+                        rect.top = if (ly - cropRange > 0) ly - cropRange else 0
+                        rect.bottom = if (ly + cropRange < h) ly + cropRange else ly
 
                         cropFromWindow(it, rect, { bmp ->
                             Log.d(TAG, "crop bitmap end,$rect")
@@ -92,6 +100,9 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                         })
                     }
                 } else {
+                    val w = imgView.measuredWidth
+                    val h = imgView.measuredHeight
+
                     val bitmap = Bitmap.createBitmap(
                         imgView.measuredWidth,
                         imgView.measuredHeight,
@@ -106,10 +117,10 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
 
                     Log.d(TAG, "draw bitmap end")
                     val rect = Rect()
-                    rect.left = if (x - 100 > 0) x - 100 else 0
-                    rect.right = if (x + 100 < w) x + 100 else x
-                    rect.top = if (y - 100 > 0) y - 100 else 0
-                    rect.bottom = if (y + 100 < h) y + 100 else y
+                    rect.left = if (x - cropRange > 0) x - cropRange else 0
+                    rect.right = if (x + cropRange < w) x + cropRange else x
+                    rect.top = if (y - cropRange > 0) y - cropRange else 0
+                    rect.bottom = if (y + cropRange < h) y + cropRange else y
 
                     Log.w(TAG, "rect$rect")
                     val bmpCrop = Bitmap.createBitmap(
