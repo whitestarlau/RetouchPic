@@ -86,16 +86,18 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
                         cropFromWindow(it, rect, { bmp ->
                             Log.d(TAG, "crop bitmap end,$rect")
                             val colors = DominantColors.getDominantColors(bmp, 5)
-                            var maxPercent = -1f
-                            for (i in colors.indices) {
-                                val percent = colors[i].percentage
-                                if (percent > maxPercent) {
-                                    result = colors[i].color
-                                    Log.d(TAG, "maxPercent:$percent,color:$result")
-                                    maxPercent = percent
+                            if(colors != null){
+                                var maxPercent = -1f
+                                for (i in colors.indices) {
+                                    val percent = colors[i]!!.percentage
+                                    if (percent > maxPercent) {
+                                        result = colors[i]!!.color
+                                        Log.d(TAG, "maxPercent:$percent,color:$result")
+                                        maxPercent = percent
+                                    }
                                 }
+                                firstTouchColor = result
                             }
-                            firstTouchColor = result
                             colorCallBack.invoke(result)
                         })
                     }
@@ -133,17 +135,19 @@ object RetouchColorHolder : CoroutineScope by MainScope() {
 
                     Log.d(TAG, "crop bitmap end")
                     val colors = DominantColors.getDominantColors(bmpCrop, 5)
-                    var maxPercent = -1f
-                    for (i in colors.indices) {
-                        val percent = colors[i].percentage
-                        if (percent > maxPercent) {
-                            result = colors[i].color
-                            Log.d(TAG, "maxPercent:$percent,color:$result")
-                            maxPercent = percent
+                    if (colors != null) {
+                        var maxPercent = -1f
+                        for (i in colors.indices) {
+                            val percent = colors[i]!!.percentage
+                            if (percent > maxPercent) {
+                                result = colors[i]!!.color
+                                Log.d(TAG, "maxPercent:$percent,color:$result")
+                                maxPercent = percent
+                            }
                         }
+                        firstTouchColor = result
                     }
 
-                    firstTouchColor = result
                     colorCallBack.invoke(result)
                     Log.d(TAG, "dominant bitmap color end")
                     bitmap.recycle()

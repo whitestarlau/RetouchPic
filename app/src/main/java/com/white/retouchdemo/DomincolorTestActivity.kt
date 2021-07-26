@@ -38,7 +38,10 @@ class DomincolorTestActivity : AppCompatActivity() {
                 resultLayout.removeAllViews()
 
                 val result = DominantColors.getDominantColors(nowBmp, 3)
-                for (color in result) {
+                result?.forEach { color ->
+                    if (color == null) {
+                        return@forEach
+                    }
                     Log.d(TAG, "result: ${color}")
                     val layoutParams = RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.WRAP_CONTENT,

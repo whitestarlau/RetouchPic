@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.util.Log;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,6 +17,7 @@ import java.util.List;
  * 核心代码来自 https://github.com/jfeinstein10/DominantColors
  */
 public class DominantColors {
+    private static final String TAG = "DominantColors";
 
     public static final int DEFAULT_NUM_COLORS = 3;
     public static final double DEFAULT_MIN_DIFF = 0.5f;
@@ -26,10 +29,12 @@ public class DominantColors {
 
     /**
      * 注意，输入的bitmap一定要是ARGB_8888
+     *
      * @param bitmap
      * @param numColors
      * @return
      */
+    @Nullable
     public static DominantColor[] getDominantColors(Bitmap bitmap, int numColors) {
         return getDominantColors(bitmap, numColors, DEFAULT_MIN_DIFF);
     }
@@ -38,7 +43,9 @@ public class DominantColors {
         // scale down while maintaining aspect ratio
         bitmap = resizeToFitInSquare(bitmap, SIDE_SIZE);
         DominantColor[] cs = kmeans(bitmap, numColors);
-        Log.v("com.dominantcolors", "" + cs);
+        for (DominantColor c : cs){
+            Log.d(TAG,"#getDominantColors over:" + c.toString());
+        }
         return cs;
     }
 
@@ -173,6 +180,7 @@ public class DominantColors {
 
     /**
      * 均值漂移算法，目前尚未完成
+     *
      * @param bmp
      * @param radius
      * @return

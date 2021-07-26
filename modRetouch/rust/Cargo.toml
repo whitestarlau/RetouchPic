@@ -1,0 +1,23 @@
+[package]
+name = "dominantcolors"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0.1"
+
+jni = "0.18.0"
+log = "0.4.14"
+ndk = { version = "0.3.0", features = ["bitmap","trace"] }
+ndk-glue = { version = "0.3.0", features = ["logger"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.10"
+
+rand = "0.8.4"
+#kdtree = "0.6.0"
+
+[lib]
+crate_type = ["staticlib", "dylib"]
