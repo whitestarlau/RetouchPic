@@ -8,7 +8,7 @@
  
 ## 关于rust分支
 
- 这是将项目中C实现的部分改造为rust实现的分支。编译这个分支需要在你的电脑上配置一系列相关环境：
+ 这是将项目DominantColors部分中C代码实现的部分改造为rust实现的分支。编译这个分支需要在你的开发环境中配置一系列相关工具链：
  
  ### how to build?
  1. Install rust from https://www.rust-lang.org/.
