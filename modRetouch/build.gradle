@@ -7,6 +7,9 @@ android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
 
+    //新版本rust对ndk版本有要求，20版本的一些api已经不再支持，需要至少使用21版本。
+    android.ndkVersion "21.0.6113669"
+
     defaultConfig {
         //if minSdkVersin is 19,rust-android-gradle will use toolchains as ndk/20.0.5594570/toolchains/llvm/prebuilt/darwin-x86_64/bin/x86_64-linux-android19-clang
         //but ndk-20.0.5594570 don't have x86_64-linux-android19-clang,so we set it as 23.
@@ -17,9 +20,6 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         consumerProguardFiles 'consumer-rules.pro'
 
-//        ndk {
-//            abiFilters "armeabi-v7a"
-//        }
         externalNativeBuild {
             cmake {
                 cppFlags ""
@@ -65,7 +65,7 @@ cargo {
 
     prebuiltToolchains = true
     // devices Platform.
-    targets = ["arm", "x86", "x86_64", "arm64"]
+    targets = ["arm", "x86_64", "arm64"]
 }
 
 
